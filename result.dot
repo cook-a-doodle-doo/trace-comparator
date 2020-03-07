@@ -1,7 +1,0 @@
-digraph "test" {
-	graph[
-		charset="UTF-8";
-	];
-
-	"{0,0}";
-}

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cook-a-doodle-do/trace/graph"
+	"github.com/cook-a-doodle-do/trace-comparator/graph"
 )
 
 type hoge struct {
