@@ -9,7 +9,8 @@ import (
 )
 
 type hoge struct {
-	name string
+	name  string
+	color string
 }
 
 func (h *hoge) Name() string {
@@ -17,7 +18,11 @@ func (h *hoge) Name() string {
 }
 
 func (h *hoge) Dot() string {
-	return fmt.Sprintf("\"%s\";\n", h.name)
+	str := fmt.Sprintf("\"%s\"[shape=\"ellipse\"", h.name)
+	if h.color != "" {
+		str = fmt.Sprintf("%s, color=\"%s\"", str, h.color)
+	}
+	return str + "];\n"
 }
 
 type edge struct {
@@ -25,6 +30,7 @@ type edge struct {
 	start  string
 	end    string
 	name   string
+	color  string
 }
 
 func (e *edge) Start() string {
@@ -40,10 +46,14 @@ func (e *edge) Name() string {
 }
 
 func (e *edge) Dot() string {
+	str := fmt.Sprintf("\"%s\"->\"%s\"[label=\"%s\"", e.start, e.end, e.name)
 	if e.hidden {
-		return fmt.Sprintf("\"%s\"->\"%s\"[label=\"%s\", style=\"dashed\"];\n", e.start, e.end, e.name)
+		str = fmt.Sprintf("%s, style=\"dashed\"", str)
 	}
-	return fmt.Sprintf("\"%s\"->\"%s\"[label=\"%s\"];\n", e.start, e.end, e.name)
+	if e.color != "" {
+		str = fmt.Sprintf("%s, color=\"%s\"", str, e.color)
+	}
+	return fmt.Sprintf("%s];\n", str)
 }
 
 type pair struct {
@@ -58,14 +68,10 @@ func main() {
 	spc.AddNode(&hoge{name: "0"})
 	spc.AddNode(&hoge{name: "1"})
 	spc.AddNode(&hoge{name: "2"})
-	spc.AddNode(&hoge{name: "3"})
-	spc.AddEdge(&edge{start: "0", end: "1", name: "go1"})
-	spc.AddEdge(&edge{start: "1", end: "1", name: "go1", hidden: true})
-	spc.AddEdge(&edge{start: "1", end: "2", name: "go2"})
-	spc.AddEdge(&edge{start: "2", end: "2", name: "go2"})
-	spc.AddEdge(&edge{start: "2", end: "3", name: "go3", hidden: true})
-	spc.AddEdge(&edge{start: "3", end: "3", name: "go3"})
-	spc.AddEdge(&edge{start: "3", end: "0", name: "go0"})
+	spc.AddEdge(&edge{start: "0", end: "1", name: "a"})
+	spc.AddEdge(&edge{start: "2", end: "1", name: "a", hidden: false})
+	spc.AddEdge(&edge{start: "1", end: "1", name: "a"})
+	spc.AddEdge(&edge{start: "1", end: "2", name: "b"})
 	str, err := spc.ExportDot()
 	if err != nil {
 		log.Fatal(err)
@@ -79,9 +85,18 @@ func main() {
 
 	//implementation ===============================================================
 	imp := graph.NewGraph() //spc.Clone()
+	imp.AddNode(&hoge{name: "0"})
+	imp.AddNode(&hoge{name: "1"})
 	imp.AddNode(&hoge{name: "2"})
-	imp.AddNode(&hoge{name: "3"})
-	spc.AddEdge(&edge{start: "2", end: "3", name: "go2"})
+	imp.AddEdge(&edge{start: "0", end: "1", name: "a"})
+	imp.AddEdge(&edge{start: "1", end: "2", name: "a"})
+	imp.AddEdge(&edge{start: "2", end: "0", name: "b"})
+	imp.AddEdge(&edge{start: "2", end: "2", name: "a"})
+	imp.AddEdge(&edge{start: "1", end: "0", name: "b"})
+	imp.AddEdge(&edge{start: "0", end: "2", name: "a"})
+
+	imp.AddEdge(&edge{start: "1", end: "1", name: "b"})
+
 	str, err = imp.ExportDot()
 	if err != nil {
 		log.Fatal(err)
@@ -104,45 +119,71 @@ func main() {
 	//make queue & check list
 	var field []*pair
 	checked := make(map[pair]bool)
-	field = append(field, &pair{specification: "0", implementation: "0"})
+	root := &pair{specification: "0", implementation: "0"}
+	field = append(field, root)
+	checked[*root] = true
+	violated := false
 
 	for len(field) > 0 {
 		// pull one value from queue
 		cur := field[0]
 		field = field[1:]
-		// check cur pair
-		checked[*cur] = true
-		result.AddNode(&hoge{name: fmt.Sprintf("{%s,%s}", cur.implementation, cur.specification)})
-
 		fmt.Println(cur)
+		//add new node to result
+		result.AddNode(&hoge{name: fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification)})
+
 		for _, impEdges := range imp.Edges(cur.implementation) {
 			impEdge, _ := impEdges.(*edge)
 			impEvent := impEdge.Name()
 			impNextN := impEdge.End()
 
-			for _, spcEdges := range spc.Edges(cur.specification) {
-				spcEdge, _ := spcEdges.(*edge)
-				spcEvent := spcEdge.Name()
-				spcNextN := spcEdge.End()
-
-				if spcEvent == impEvent {
-					p := &pair{
-						implementation: impNextN,
-						specification:  spcNextN,
+			//get pairs
+			pairs := []*pair{}
+			if impEdge.hidden {
+				pairs = append(pairs, &pair{implementation: impNextN, specification: cur.specification})
+			} else {
+				for _, spcEdges := range spc.Edges(cur.specification) {
+					spcEdge, _ := spcEdges.(*edge)
+					spcEvent := spcEdge.Name()
+					spcNextN := spcEdge.End()
+					if spcEvent != impEvent {
+						continue
 					}
-					result.AddEdge(&edge{
-						start: fmt.Sprintf("{%s,%s}", cur.implementation, cur.specification),
-						end:   fmt.Sprintf("{%s,%s}", p.implementation, p.specification),
-						name:  impEvent,
-					})
-					if _, ok := checked[*p]; !ok {
-						field = append(field, p)
-					}
+					pairs = append(pairs, &pair{implementation: impNextN, specification: spcNextN})
 				}
-				fmt.Println(spcEvent, spcNextN)
 			}
+
+			for _, p := range pairs {
+				result.AddEdge(&edge{
+					start: fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification),
+					end:   fmt.Sprintf("{%s, %s}", p.implementation, p.specification),
+					name:  impEvent,
+				})
+				if _, ok := checked[*p]; !ok {
+					checked[*p] = true
+					field = append(field, p)
+				}
+			}
+
+			if len(pairs) > 0 {
+				continue
+			}
+			violated = true
+			fmt.Printf("Out of Specification imp:{cur:%s -> next:%s}\n", cur.implementation, impNextN)
+			result.AddEdge(
+				&edge{
+					start: fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification),
+					end:   "Out of Specification",
+					name:  fmt.Sprintf("{%s: %s}", impEvent, impNextN),
+					color: "red",
+				})
 		}
 	}
+
+	if violated {
+		result.AddNode(&hoge{name: fmt.Sprintf("Out of Specification"), color: "red"})
+	}
+
 	//export result
 	str, err = result.ExportDot()
 	if err != nil {
