@@ -67,11 +67,14 @@ func main() {
 	spc := graph.NewGraph()
 	spc.AddNode(&hoge{name: "0"})
 	spc.AddNode(&hoge{name: "1"})
-	spc.AddNode(&hoge{name: "2"})
 	spc.AddEdge(&edge{start: "0", end: "1", name: "a"})
-	spc.AddEdge(&edge{start: "2", end: "1", name: "a", hidden: false})
-	spc.AddEdge(&edge{start: "1", end: "1", name: "a"})
-	spc.AddEdge(&edge{start: "1", end: "2", name: "b"})
+	//	spc.AddNode(&hoge{name: "0"})
+	//	spc.AddNode(&hoge{name: "1"})
+	//	spc.AddNode(&hoge{name: "2"})
+	//	spc.AddEdge(&edge{start: "0", end: "1", name: "a"})
+	//	spc.AddEdge(&edge{start: "2", end: "1", name: "a"})
+	//	spc.AddEdge(&edge{start: "1", end: "1", name: "a"})
+	//	spc.AddEdge(&edge{start: "1", end: "2", name: "b"})
 	str, err := spc.ExportDot()
 	if err != nil {
 		log.Fatal(err)
@@ -86,16 +89,19 @@ func main() {
 	//implementation ===============================================================
 	imp := graph.NewGraph() //spc.Clone()
 	imp.AddNode(&hoge{name: "0"})
-	imp.AddNode(&hoge{name: "1"})
-	imp.AddNode(&hoge{name: "2"})
-	imp.AddEdge(&edge{start: "0", end: "1", name: "a"})
-	imp.AddEdge(&edge{start: "1", end: "2", name: "a"})
-	imp.AddEdge(&edge{start: "2", end: "0", name: "b"})
-	imp.AddEdge(&edge{start: "2", end: "2", name: "a"})
-	imp.AddEdge(&edge{start: "1", end: "0", name: "b"})
-	imp.AddEdge(&edge{start: "0", end: "2", name: "a"})
+	imp.AddNode(&hoge{name: "3"})
+	imp.AddEdge(&edge{start: "0", end: "3", name: "a", hidden: false})
+	//	imp.AddNode(&hoge{name: "0"})
+	//	imp.AddNode(&hoge{name: "1"})
+	//	imp.AddNode(&hoge{name: "2"})
+	//	imp.AddEdge(&edge{start: "0", end: "1", name: "a", hidden: false})
+	//	imp.AddEdge(&edge{start: "1", end: "2", name: "a", hidden: false})
+	//	imp.AddEdge(&edge{start: "2", end: "0", name: "b", hidden: false})
+	//	imp.AddEdge(&edge{start: "2", end: "2", name: "a", hidden: false})
+	//	imp.AddEdge(&edge{start: "1", end: "0", name: "b", hidden: false})
+	//imp.AddEdge(&edge{start: "0", end: "2", name: "a", hidden: false})
 
-	imp.AddEdge(&edge{start: "1", end: "1", name: "b"})
+	//	imp.AddEdge(&edge{start: "1", end: "1", name: "b"})
 
 	str, err = imp.ExportDot()
 	if err != nil {
@@ -130,6 +136,7 @@ func main() {
 		field = field[1:]
 		fmt.Println(cur)
 		//add new node to result
+		result.AddNode(&hoge{name: "{imp, spc}"})
 		result.AddNode(&hoge{name: fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification)})
 
 		for _, impEdges := range imp.Edges(cur.implementation) {
