@@ -67,7 +67,11 @@ func main() {
 	spc := graph.NewGraph()
 	spc.AddNode(&hoge{name: "0"})
 	spc.AddNode(&hoge{name: "1"})
-	spc.AddEdge(&edge{start: "0", end: "1", name: "a"})
+	spc.AddNode(&hoge{name: "2"})
+	spc.AddEdge(&edge{start: "0", end: "1", name: "in"})
+	spc.AddEdge(&edge{start: "1", end: "2", name: "in"})
+	spc.AddEdge(&edge{start: "2", end: "1", name: "out"})
+	spc.AddEdge(&edge{start: "1", end: "0", name: "out"})
 	//	spc.AddNode(&hoge{name: "0"})
 	//	spc.AddNode(&hoge{name: "1"})
 	//	spc.AddNode(&hoge{name: "2"})
@@ -89,8 +93,20 @@ func main() {
 	//implementation ===============================================================
 	imp := graph.NewGraph() //spc.Clone()
 	imp.AddNode(&hoge{name: "0"})
+	imp.AddNode(&hoge{name: "1"})
+	imp.AddNode(&hoge{name: "2"})
+	imp.AddNode(&hoge{name: "4"})
+	imp.AddEdge(&edge{start: "0", end: "1", name: "in"})
+	imp.AddEdge(&edge{start: "1", end: "2", name: "sync", hidden: true})
+	imp.AddEdge(&edge{start: "2", end: "4", name: "in"})
+	imp.AddEdge(&edge{start: "4", end: "1", name: "out"})
+	imp.AddEdge(&edge{start: "2", end: "0", name: "out"})
+
 	imp.AddNode(&hoge{name: "3"})
-	imp.AddEdge(&edge{start: "0", end: "3", name: "a", hidden: false})
+	imp.AddEdge(&edge{start: "3", end: "4", name: "in"})
+	imp.AddEdge(&edge{start: "3", end: "0", name: "out"})
+	imp.AddEdge(&edge{start: "2", end: "3", name: "sync", hidden: true})
+
 	//	imp.AddNode(&hoge{name: "0"})
 	//	imp.AddNode(&hoge{name: "1"})
 	//	imp.AddNode(&hoge{name: "2"})
@@ -162,9 +178,10 @@ func main() {
 
 			for _, p := range pairs {
 				result.AddEdge(&edge{
-					start: fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification),
-					end:   fmt.Sprintf("{%s, %s}", p.implementation, p.specification),
-					name:  impEvent,
+					start:  fmt.Sprintf("{%s, %s}", cur.implementation, cur.specification),
+					end:    fmt.Sprintf("{%s, %s}", p.implementation, p.specification),
+					name:   impEvent,
+					hidden: impEdge.hidden,
 				})
 				if _, ok := checked[*p]; !ok {
 					checked[*p] = true
